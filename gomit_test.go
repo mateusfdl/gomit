@@ -40,7 +40,7 @@ func TestEmit(t *testing.T) {
 
 	gomit.Emit("test")
 
-	// Wait for 200ms since its async
+	// Wait for ms 200 since its async
 	<-time.After(time.Millisecond * 200)
 	if calls != 2 {
 		t.Errorf("Expected calls to be 2, got %d", calls)
