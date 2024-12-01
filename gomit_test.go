@@ -2,47 +2,46 @@ package gomit_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/mateusfdl/gomit"
 )
 
 func TestListenersAdded(t *testing.T) {
-	firstCallback := func(s ...interface{}) error {
-		return nil
-	}
-	secondCallback := func(s ...interface{}) error {
-		return nil
-	}
+	type Foo struct{}
+	type Bar struct{}
 
-	gomit.AddListener("test", firstCallback)
-	gomit.AddListener("test", secondCallback)
+	gomit.AddListener(func(s Foo) error { return nil })
+	gomit.AddListener(func(s Bar) error { return nil })
 
-	listeners := gomit.Listeners()
-	if len(listeners["test"]) != 2 {
+	if gomit.ActiveListeners() != 2 {
 		t.Errorf("Expected 2 listeners, got %d", len(gomit.Listeners()))
 	}
 }
 
 func TestEmit(t *testing.T) {
 	var calls int
-	firstCallback := func(s ...interface{}) error {
+	type FirstEvent struct{}
+	type SecondEvent struct{}
+	type AssertEvent struct{ Calls *int }
+	gomit.AddListener(func(s FirstEvent) error {
 		calls += 1
 		return nil
-	}
-	secondCallback := func(s ...interface{}) error {
+	})
+	gomit.AddListener(func(s SecondEvent) error {
 		calls += 1
 		return nil
-	}
+	})
 
-	gomit.AddListener("test", firstCallback)
-	gomit.AddListener("test", secondCallback)
+	gomit.Emit(FirstEvent{})
+	gomit.Emit(SecondEvent{})
+	gomit.AddListener(func(s AssertEvent) error {
+		if *s.Calls != 2 {
+			t.Errorf("Expected 2 calls, got %d", calls)
+		}
+		return nil
+	})
 
-	gomit.Emit("test")
-
-	// Wait for ms 200 since its async
-	<-time.After(time.Millisecond * 200)
-	if calls != 2 {
-		t.Errorf("Expected calls to be 2, got %d", calls)
-	}
+	gomit.Emit(AssertEvent{
+		Calls: &calls,
+	})
 }
